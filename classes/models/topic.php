@@ -99,6 +99,7 @@ class Topic extends Base
 			$mark_time = time();
 		}
 
+		// Update topic track last mark value (or insert when it does not exist)
 		if (!is_null($this->track))
 		{
 			$this->track()->update(array('mark_time' => $mark_time));
@@ -108,8 +109,8 @@ class Topic extends Base
 			$this->track()->insert(array('mark_time' => $mark_time, 'forum_id' => $this->forum_id, 'user_id' => User::current()->id));
 		}
 
+		$this->forum->check_unread();
 
-
-		var_dump($this->forum->is_unread());
+		// var_dump($this->forum->is_unread());
 	}
 }

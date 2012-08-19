@@ -64,7 +64,7 @@ class FluxBB_Home_Controller extends Base
 			return Event::first('404');
 		}
 
-		var_dump($forum->unread_topics());
+		var_dump($forum->unread_topics()->get());
 
 		$disp_topics = $this->user()->disp_topics();
 		$num_pages = ceil(($forum->num_topics + 1) / $disp_topics);

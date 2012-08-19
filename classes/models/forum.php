@@ -69,12 +69,11 @@ class Forum extends Base
 		->where('topics.forum_id', '=', $this->id)
 		->where_null('topics.moved_to')
 		->where('topics.last_post', '>', \DB::raw($this->mark_time()))
-		->or_where(function ($query)
+		->where(function ($query)
 		{
 			$query->where_null('topic_track.topic_id');
 			$query->or_where('topic_track.mark_time', '>', 'topics.last_post');
-		})
-		->get();
+		});
 	}
 
 	public function num_topics()
@@ -126,6 +125,20 @@ class Forum extends Base
 		else
 		{
 			$this->track()->insert(array('mark_time' => time()));
+		}
+
+		TopicsTrack::where_forum_id($this->id)->delete();
+	}
+
+	public function check_unread()
+	{
+		// Check the forum for any left unread topics (if we do not mark forum as read before).
+		// If there are none, we mark the forum as read.
+		if ($this->mark_time() < $this->last_post)
+		{
+			$num_unread_topics = $this->unread_topics()->count();
+			if ($num_unread_topics == 0)
+				$this->mark_read();
 		}
 	}
 }
