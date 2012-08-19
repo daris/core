@@ -39,27 +39,32 @@ class FluxBB_Home_Controller extends Base
 		$categories = Category::with(array(
 			'forums',
 			'forums.perms',
+			'forums.track',
 		))
 		->order_by('disp_position', 'ASC')
 		->order_by('id', 'ASC')
 		->get();
-		
+
 		return View::make('fluxbb::index')->with('categories', $categories);
 	}
 
 	public function get_forum($fid, $page = 1)
 	{
 		$page = intval($page);
-		
+
 		// Fetch some info about the forum
-		$forum = Forum::with('perms')
-			->where_id($fid)
-			->first();
+		$forum = Forum::with(array(
+			'perms',
+		))
+		->where_id($fid)
+		->first();
 
 		if ($forum === NULL)
 		{
 			return Event::first('404');
 		}
+
+		var_dump($forum->unread_topics());
 
 		$disp_topics = $this->user()->disp_topics();
 		$num_pages = ceil(($forum->num_topics + 1) / $disp_topics);
@@ -69,7 +74,10 @@ class FluxBB_Home_Controller extends Base
 		// FIXME: Do we have to fetch just IDs first (performance)?
 		// TODO: If logged in, with "the dot" subquery
 		// Fetch topic data
-		$topics = Topic::where_forum_id($fid)
+		$topics = Topic::with(array(
+			'track',
+			'forum.track',
+		))->where_forum_id($fid)
 		->order_by('sticky', 'DESC') // TODO: insert $sort_by
 		->order_by('id', 'DESC')
 		->skip($start_from)
@@ -88,6 +96,7 @@ class FluxBB_Home_Controller extends Base
 		$topic = Topic::with(array(
 			'forum',
 			'forum.perms',
+			'track',
 		))
 		->where_id($tid)
 		->where_null('moved_to')
@@ -102,7 +111,7 @@ class FluxBB_Home_Controller extends Base
 		$num_pages = ceil(($topic->num_replies + 1) / $disp_posts);
 		$page = ($page <= 1 || $page > $num_pages) ? 1 : intval($page);
 		$start_from = $disp_posts * ($page - 1);
-		
+
 
 		// TODO: Use paginate?
 		// Fetch post data
@@ -121,7 +130,12 @@ class FluxBB_Home_Controller extends Base
 		->skip($start_from)
 		->take($disp_posts)
 		->get();	// TODO: Or do I need to fetch the IDs here first, since those big results will otherwise have to be filtered after fetching by LIMIT / OFFSET?
-		
+
+		if (Auth::check() && !$topic->is_unread())
+		{
+			$topic->mark_read();
+		}
+
 		return View::make('fluxbb::viewtopic')
 			->with('topic', $topic)
 			->with('posts', $posts)

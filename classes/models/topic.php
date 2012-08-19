@@ -46,6 +46,13 @@ class Topic extends Base
 			->where_user_id(User::current()->id);
 	}
 
+	public function track()
+	{
+		return $this->has_one('fluxbb\\Models\\TopicTrack')
+			->where_forum_id($this->forum_id)
+			->where_user_id(User::current()->id);
+	}
+
 	public function num_replies()
 	{
 		return is_null($this->moved_to) ? $this->num_replies : '-';
@@ -66,4 +73,43 @@ class Topic extends Base
 		return !is_null($this->moved_to);
 	}
 
+	public function mark_time()
+	{
+		if (!is_null($this->track))
+		{
+			return $this->track->mark_time;
+		}
+		else if (!is_null($this->forum->track))
+		{
+			return $this->forum->track->mark_time;
+		}
+
+		return User::current()->last_mark;
+	}
+
+	public function is_unread()
+	{
+		return $this->last_post > $this->mark_time();
+	}
+
+	public function mark_read($mark_time = null)
+	{
+		if (is_null($mark_time))
+		{
+			$mark_time = time();
+		}
+
+		if (!is_null($this->track))
+		{
+			$this->track()->update(array('mark_time' => $mark_time));
+		}
+		else
+		{
+			$this->track()->insert(array('mark_time' => $mark_time, 'forum_id' => $this->forum_id, 'user_id' => User::current()->id));
+		}
+
+
+
+		var_dump($this->forum->is_unread());
+	}
 }

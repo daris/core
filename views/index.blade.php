@@ -16,31 +16,23 @@
 				</tr>
 			</thead>
 			<tbody>
-	<?php $forum_count = 0; ?>
+	<?php $forum_count = 0;  ?>
 	@foreach ($category->forums as $forum)
 <?php
 
 		$forum_count++;
 		$icon_type = 'icon';
+		$item_status = ''; $forum_field_new = '';
 
-		if (Auth::check() && $forum->last_post > fluxbb\Models\User::current()->last_visit && (empty($tracked_topics['forums'][$forum->id]) || $forum->last_post > $tracked_topics['forums'][$forum->id]))
+		if (Auth::check() && $forum->is_unread())
 		{
-			// There are new posts in this forum, but have we read all of them already?
-			foreach ($new_topics[$forum->fid] as $check_topic_id => $check_last_post)
-			{
-				if ((empty($tracked_topics['topics'][$check_topic_id]) || $tracked_topics['topics'][$check_topic_id] < $check_last_post) && (empty($tracked_topics['forums'][$forum->id]) || $tracked_topics['forums'][$forum->id] < $check_last_post))
-				{
-					$item_status .= ' inew';
-					$forum_field_new = '<span class="newtext">[ <a href="'.URL::to_action('fluxbb::search@new', array($forum->id)).'">'.__('New posts').'</a> ]</span>';
-					$icon_type = 'icon icon-new';
-
-					break;
-				}
-			}
+			$item_status .= ' inew';
+			$forum_field_new = '<span class="newtext">[ <a href="'.URL::to_action('fluxbb::search@new', array($forum->id)).'">'.__('New posts').'</a> ]</span>';
+			$icon_type = 'icon icon-new';
 		}
 
 ?>
-				<tr class="row{{ HTML::oddeven() }}">
+				<tr class="row{{ HTML::oddeven().$item_status }}">
 					<td class="tcl">
 						<div class="{{ $icon_type }}"><div class="nosize">{{ HTML::number_format($forum_count) }}</div></div>
 						<div class="tclcon">

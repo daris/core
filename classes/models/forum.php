@@ -53,6 +53,30 @@ class Forum extends Base
 			->or_where('read_forum', '=', '1');
 	}
 
+	public function track()
+	{
+		return $this->has_one('fluxbb\\Models\\ForumTrack')
+			->where_user_id(User::current()->id);
+	}
+
+	public function unread_topics()
+	{
+		return Topic::left_join('topic_track', function ($join)
+		{
+			$join->on('topics.id', '=', 'topic_track.topic_id');
+			$join->on('topic_track.user_id', '=', \DB::raw(User::current()->id));
+		})
+		->where('topics.forum_id', '=', $this->id)
+		->where_null('topics.moved_to')
+		->where('topics.last_post', '>', \DB::raw($this->mark_time()))
+		->or_where(function ($query)
+		{
+			$query->where_null('topic_track.topic_id');
+			$query->or_where('topic_track.mark_time', '>', 'topics.last_post');
+		})
+		->get();
+	}
+
 	public function num_topics()
 	{
 		return $this->redirect_url == '' ? $this->num_topics : '-';
@@ -83,4 +107,25 @@ class Forum extends Base
 		return User::current()->is_admin() || $this->is_moderator();
 	}
 
+	public function mark_time()
+	{
+		return !is_null($this->track) ? $this->track->mark_time : User::current()->last_mark;
+	}
+
+	public function is_unread()
+	{
+		return $this->last_post > $this->mark_time();
+	}
+
+	public function mark_read()
+	{
+		if (!is_null($this->track))
+		{
+			$this->track()->update(array('mark_time' => time()));
+		}
+		else
+		{
+			$this->track()->insert(array('mark_time' => time()));
+		}
+	}
 }
