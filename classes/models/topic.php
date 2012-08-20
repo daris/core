@@ -113,4 +113,23 @@ class Topic extends Base
 
 		// var_dump($this->forum->is_unread());
 	}
+
+	public function subscribe($subscribe = true)
+	{
+		// To subscribe or not to subscribe, that ...
+		if (!Config::enabled('o_topic_subscriptions') || !Auth::check())
+		{
+			return false;
+		}
+
+		if ($subscribe && !$this->is_user_subscribed())
+		{
+			$this->subscription()->insert(array('user_id' => User::current()->id));
+		}
+		else if (!$subscribe && $this->is_user_subscribed())
+		{
+			$this->subscription()->delete();
+		}
+	}
+
 }
